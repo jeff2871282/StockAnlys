@@ -62,9 +62,9 @@ export function PortfolioPage() {
 
       {/* Main content */}
       {holdings.length > 0 ? (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Holdings Table — takes 2/3 */}
-          <div className="xl:col-span-2">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          {/* Holdings Table — takes 3/4 on xl */}
+          <div className="xl:col-span-3">
             <h2 className="text-sm font-medium text-muted-foreground mb-3">持倉清單</h2>
             <HoldingsTable
               holdings={holdings}

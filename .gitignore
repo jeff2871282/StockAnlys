@@ -12,9 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Claude Code worktrees
-.claude/
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -25,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code
+.claude/

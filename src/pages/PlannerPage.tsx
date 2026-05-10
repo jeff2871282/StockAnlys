@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react'
-import { Calculator, TrendingUp, TrendingDown } from 'lucide-react'
+import { Calculator, TrendingUp, TrendingDown, Loader2 } from 'lucide-react'
 import { usePortfolioStore } from '@/stores/portfolioStore'
 import { useStockDataStore } from '@/stores/stockDataStore'
+import { useStockListStore } from '@/stores/stockListStore'
 import { cn, formatCurrency, formatPercent, formatLargeNumber } from '@/lib/utils'
 import { PlannerAICard } from '@/components/planner/PlannerAICard'
+import { StockCombobox } from '@/components/common/StockCombobox'
 
 type Action = 'buy' | 'sell'
 
@@ -61,18 +63,23 @@ function ResultRow({ label, value, highlight, valueClass }: {
 export function PlannerPage() {
   const { holdings } = usePortfolioStore()
   const { getStockData } = useStockDataStore()
+  const { stocks: allStocks, fetchedAt } = useStockListStore()
 
-  const [selectedId, setSelectedId] = useState<string>(holdings[0]?.id ?? '')
+  const [selectedStockId, setSelectedStockId] = useState<string>(holdings[0]?.stockId ?? '')
   const [action, setAction] = useState<Action>('buy')
   const [tradeShares, setTradeShares] = useState('')
   const [tradePrice, setTradePrice] = useState('')
 
-  const holding = holdings.find((h) => h.id === selectedId)
-  const stockData = holding ? getStockData(holding.stockId) : null
+  const holding = holdings.find((h) => h.stockId === selectedStockId)
+  const stockData = getStockData(selectedStockId)
   const currentPrice = stockData?.latestPrice?.close
 
-  const handleSelectStock = (id: string) => {
-    setSelectedId(id)
+  const heldStockIds = new Set(holdings.map((h) => h.stockId))
+  const otherStocks = allStocks.filter((s) => !heldStockIds.has(s.stockId))
+  const stockListLoaded = !!fetchedAt
+
+  const handleSelectStock = (stockId: string) => {
+    setSelectedStockId(stockId)
     setTradeShares('')
     setTradePrice('')
   }
@@ -99,15 +106,6 @@ export function PlannerPage() {
     }
   }, [holding, action, tradeShares, tradePrice])
 
-  if (holdings.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Calculator className="w-10 h-10 text-muted-foreground mb-4" />
-        <p className="text-muted-foreground">請先至「投資組合」頁面新增持倉</p>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       <div>
@@ -123,22 +121,29 @@ export function PlannerPage() {
 
             {/* Stock selector */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">選擇股票</label>
-              <select
-                value={selectedId}
-                onChange={(e) => handleSelectStock(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-md text-sm bg-input border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {holdings.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.stockName}（{h.stockId}）
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">選擇股票</label>
+                {!stockListLoaded && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    載入台股清單中...
+                  </span>
+                )}
+                {stockListLoaded && (
+                  <span className="text-xs text-muted-foreground">{allStocks.length.toLocaleString()} 支股票</span>
+                )}
+              </div>
+              <StockCombobox
+                heldOptions={holdings.map((h) => ({ stockId: h.stockId, stockName: h.stockName }))}
+                allOptions={otherStocks}
+                value={selectedStockId}
+                onChange={handleSelectStock}
+                isLoading={!stockListLoaded}
+              />
             </div>
 
-            {/* Current holding info */}
-            {holding && (
+            {/* Current holding info — only if held */}
+            {holding ? (
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: '持有股數', value: `${holding.shares.toLocaleString()} 股` },
@@ -151,48 +156,56 @@ export function PlannerPage() {
                   </div>
                 ))}
               </div>
-            )}
-
-            {/* Action toggle */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">操作類型</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(['buy', 'sell'] as const).map((a) => (
-                  <button
-                    key={a}
-                    onClick={() => { setAction(a); setTradeShares(''); setTradePrice('') }}
-                    className={cn(
-                      'py-2.5 rounded-md text-sm font-medium transition-colors border',
-                      action === a
-                        ? a === 'buy'
-                          ? 'bg-profit/15 text-profit border-profit/40'
-                          : 'bg-loss/15 text-loss border-loss/40'
-                        : 'bg-muted text-muted-foreground border-transparent hover:text-foreground'
-                    )}
-                  >
-                    {a === 'buy' ? '買進（加碼）' : '賣出（減碼）'}
-                  </button>
-                ))}
+            ) : selectedStockId ? (
+              <div className="px-4 py-3 bg-muted/50 border border-dashed border-border rounded-md text-xs text-muted-foreground">
+                此股票尚未持有，僅支援已持有股票的試算。請先至「投資組合」新增持倉。
               </div>
-            </div>
+            ) : null}
 
-            <div className="grid grid-cols-2 gap-4">
-              <InputField
-                label={action === 'buy' ? '買進股數' : '賣出股數'}
-                value={tradeShares} onChange={setTradeShares}
-                placeholder="例：1000" suffix="股"
-              />
-              <InputField
-                label={action === 'buy' ? '買進價格' : '賣出價格'}
-                value={tradePrice} onChange={setTradePrice}
-                placeholder={currentPrice ? currentPrice.toFixed(2) : '例：850'} prefix="NT$"
-              />
-            </div>
+            {/* Action toggle — only for held stocks */}
+            {holding && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">操作類型</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['buy', 'sell'] as const).map((a) => (
+                      <button
+                        key={a}
+                        onClick={() => { setAction(a); setTradeShares(''); setTradePrice('') }}
+                        className={cn(
+                          'py-2.5 rounded-md text-sm font-medium transition-colors border',
+                          action === a
+                            ? a === 'buy'
+                              ? 'bg-profit/15 text-profit border-profit/40'
+                              : 'bg-loss/15 text-loss border-loss/40'
+                            : 'bg-muted text-muted-foreground border-transparent hover:text-foreground'
+                        )}
+                      >
+                        {a === 'buy' ? '買進（加碼）' : '賣出（減碼）'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {currentPrice && !tradePrice && (
-              <button onClick={() => setTradePrice(currentPrice.toFixed(2))} className="text-xs text-primary hover:underline">
-                使用目前股價 NT$ {currentPrice.toFixed(2)}
-              </button>
+                <div className="grid grid-cols-2 gap-4">
+                  <InputField
+                    label={action === 'buy' ? '買進股數' : '賣出股數'}
+                    value={tradeShares} onChange={setTradeShares}
+                    placeholder="例：1000" suffix="股"
+                  />
+                  <InputField
+                    label={action === 'buy' ? '買進價格' : '賣出價格'}
+                    value={tradePrice} onChange={setTradePrice}
+                    placeholder={currentPrice ? currentPrice.toFixed(2) : '例：850'} prefix="NT$"
+                  />
+                </div>
+
+                {currentPrice && !tradePrice && (
+                  <button onClick={() => setTradePrice(currentPrice.toFixed(2))} className="text-xs text-primary hover:underline">
+                    使用目前股價 NT$ {currentPrice.toFixed(2)}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -210,7 +223,6 @@ export function PlannerPage() {
                 </h3>
               </div>
 
-              {/* Current state banner */}
               <div className="mb-4 px-4 py-3 bg-muted rounded-lg text-xs text-muted-foreground space-y-0.5">
                 <p>目前持有 <span className="text-foreground font-medium">{holding.shares.toLocaleString()} 股</span>，均成本 <span className="text-foreground font-medium">NT$ {holding.avgCost.toFixed(2)}</span></p>
                 <p>持倉成本合計 <span className="text-foreground font-medium">NT$ {formatLargeNumber(holding.shares * holding.avgCost)}</span></p>
@@ -260,15 +272,14 @@ export function PlannerPage() {
                 </>
               )}
             </div>
-          ) : (
+          ) : holding ? (
             <div className="bg-card border border-border border-dashed rounded-lg p-12 flex flex-col items-center justify-center text-center min-h-[300px]">
               <Calculator className="w-8 h-8 text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">輸入股數與價格後</p>
               <p className="text-sm text-muted-foreground">將即時顯示試算結果</p>
             </div>
-          )}
+          ) : null}
 
-          {/* AI recommendation — always visible once a holding is selected */}
           {holding && (
             <PlannerAICard
               holding={holding}

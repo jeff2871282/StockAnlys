@@ -6,9 +6,10 @@ import { cn } from '@/lib/utils'
 
 function DetailDrawer({ record, onClose }: { record: AIAnalysisRecord; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-2xl bg-card border-l border-border flex flex-col h-full shadow-xl">
+      <div className="relative w-full max-w-3xl bg-card border border-border rounded-xl flex flex-col shadow-2xl max-h-[90vh]">
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div>
             <div className="flex items-center gap-2">
@@ -22,12 +23,13 @@ function DetailDrawer({ record, onClose }: { record: AIAnalysisRecord; onClose: 
               {record.stockPrice && ` · 分析時股價 NT$ ${record.stockPrice.toFixed(2)}`}
             </p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-accent">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        {/* Scrollable content */}
+        <div className="overflow-y-auto px-8 py-6">
           <MarkdownRenderer content={record.analysis} />
         </div>
       </div>
@@ -45,7 +47,7 @@ export function AIHistoryPage() {
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">AI 分析記錄</h1>

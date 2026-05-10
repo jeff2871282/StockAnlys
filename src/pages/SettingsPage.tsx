@@ -66,7 +66,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="max-w-xl">
+    <div className="max-w-xl mx-auto">
       <h1 className="text-2xl font-bold text-foreground mb-2">設定</h1>
       <p className="text-muted-foreground text-sm mb-8">
         所有 API Key 僅儲存於本機瀏覽器，不會傳送至任何伺服器。

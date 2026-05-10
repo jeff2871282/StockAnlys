@@ -27,7 +27,7 @@ export function StockDetailPage() {
   const stockName = holding?.stockName ?? stockId
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       {/* Back */}
       <Link
         to="/"
@@ -58,9 +58,9 @@ export function StockDetailPage() {
         <KLineChart priceHistory={stockData?.priceHistory ?? []} />
       </ErrorBoundary>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {/* Left column */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 xl:col-span-3 space-y-6">
           <ErrorBoundary>
             <PERHistoryChart
               perHistory={stockData?.perHistory ?? []}
